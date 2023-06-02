@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import axios from 'axios';
+import styles from './App.module.css';
+import { useEffect, useState } from 'react';
 
 const Filter = ({ filter, setFilter }) => {
   const handleFilter = (e) => {
@@ -8,17 +10,18 @@ const Filter = ({ filter, setFilter }) => {
   };
 
   return (
-    <div>
-      <label htmlFor="filter">
+    <div className={styles.inputRow}>
+      <label htmlFor="filter" className={styles.label}>
         Filter:
-        <input
-          name="filter"
-          type="text"
-          value={filter}
-          onChange={(e) => handleFilter(e)}
-          placeholder="filter by name"
-        />
       </label>
+      <input
+        className={styles.input}
+        name="filter"
+        type="text"
+        value={filter}
+        onChange={(e) => handleFilter(e)}
+        placeholder="filter by name"
+      />
     </div>
   );
 };
@@ -36,7 +39,7 @@ const PersonForm = ({ personData, setPersonData }) => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!newPerson.name || !newPerson.number) {
       setError('Name and Number must be filled');
@@ -53,11 +56,31 @@ const PersonForm = ({ personData, setPersonData }) => {
       return;
     }
 
-    const isValidName = !personData.some((item) => item.name === newPerson.name);
-    const isValidNumber = !personData.some((item) => item.number === newPerson.number);
+    const isValidPerson = !personData.some(
+      (item) => item.name === newPerson.name && item.number === newPerson.number,
+    );
 
-    if (isValidName && isValidNumber) {
-      setPersonData((prev) => [...prev, newPerson]);
+    if (isValidPerson) {
+      const existingPerson = personData.find((item) => item.name === newPerson.name);
+
+      if (existingPerson) {
+        await axios.put(`http://localhost:3001/persons/${existingPerson.id}`, newPerson);
+
+        setPersonData((prev) => {
+          const updatedData = prev.map((item) => {
+            if (item.id === existingPerson.id) {
+              return newPerson;
+            }
+            return item;
+          });
+          return updatedData;
+        });
+      } else {
+        await axios.post('http://localhost:3001/persons', newPerson);
+
+        setPersonData((prev) => [...prev, newPerson]);
+      }
+
       setNewPerson({ name: '', number: '' });
       setError('');
     } else {
@@ -68,34 +91,85 @@ const PersonForm = ({ personData, setPersonData }) => {
   return (
     <form action="submit" onSubmit={handleSubmit}>
       {isError ? <h2>{isError}</h2> : null}
-      <input
-        type="text"
-        placeholder="Name"
-        value={newPerson.name}
-        onChange={(e) => handlePerson(e, 'name')}
-      />
-      <input
-        type="number"
-        placeholder="Number"
-        value={newPerson.number}
-        onChange={(e) => handlePerson(e, 'number')}
-      />
-      <button type="submit">Submit</button>
+      <div className={styles.inputRow}>
+        <label htmlFor="name" className={styles.label}>
+          Name:
+        </label>
+        <input
+          type="text"
+          className={styles.input}
+          name="name"
+          placeholder="Name"
+          value={newPerson.name}
+          onChange={(e) => handlePerson(e, 'name')}
+        />
+      </div>
+      <div className={styles.inputRow}>
+        <label htmlFor="number" className={styles.label}>
+          Number:
+        </label>
+        <input
+          type="number"
+          className={styles.input}
+          name="number"
+          placeholder="Number"
+          value={newPerson.number}
+          onChange={(e) => handlePerson(e, 'number')}
+        />
+      </div>
+      <button type="submit" className={styles.btn}>
+        Submit
+      </button>
     </form>
   );
 };
 
-const Persons = ({ personData }) => {
+const Persons = ({ personData, setPersonData }) => {
+  const deleteData = async (idx) => {
+    try {
+      await axios.delete(`http://localhost:3001/persons/${idx}`);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const personDeleteData = (idx) => {
+    const filteredData = personData.filter((item) => item.id !== idx);
+    deleteData(idx);
+    setPersonData(filteredData);
+  };
+
   return personData.map((item) => (
-    <div key={item.id}>
-      {item.name} {item.number}
+    <div key={item.id} className={styles.personBlock}>
+      <p className={styles.personBlockP}>
+        {item.name} {item.number}
+      </p>
+      <button onClick={() => personDeleteData(item.id)} className={styles.btn}>
+        delete
+      </button>
     </div>
   ));
 };
 
 const App = () => {
   const [filter, setFilter] = useState('');
-  const [personData, setPersonData] = useState([{ name: 'Ihor', number: '11-12-334455', id: 1 }]);
+  const [isLoading, setLoading] = useState(true);
+  const [isError, setError] = useState(null);
+  const [personData, setPersonData] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.get('http://localhost:3001/persons');
+        setLoading(false);
+        setPersonData(response.data);
+      } catch (error) {
+        setLoading(false);
+        setError('Error Loading');
+      }
+    };
+    fetchData();
+  }, []);
 
   const filterPersonData =
     filter.length === 0
@@ -104,17 +178,25 @@ const App = () => {
 
   return (
     <div>
-      <h2>Phonebook</h2>
+      {isError ? (
+        <h2>{isError}</h2>
+      ) : isLoading ? (
+        <h1>Loading</h1>
+      ) : (
+        <>
+          <h2>Phonebook</h2>
 
-      <Filter setFilter={setFilter} />
+          <Filter setFilter={setFilter} />
 
-      <h3>Add a new</h3>
+          <h3>Add a new</h3>
 
-      <PersonForm personData={personData} setPersonData={setPersonData} />
+          <PersonForm personData={personData} setPersonData={setPersonData} />
 
-      <h3>Numbers</h3>
+          <h3>Numbers</h3>
 
-      <Persons personData={filterPersonData} />
+          <Persons personData={filterPersonData} setPersonData={setPersonData} />
+        </>
+      )}
     </div>
   );
 };

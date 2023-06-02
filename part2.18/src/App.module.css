@@ -1,0 +1,37 @@
+.wrapper {
+  margin: 0 auto;
+  padding: 20px;
+  max-width: 1050px;
+  display: flex;
+  flex-direction: column;
+}
+
+.countryBlock {
+  padding: 10px 20px;
+}
+
+.country {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.countryList {
+}
+
+.countryListLi {
+  /* list-style-type: '-'; */
+  list-style-type: square;
+}
+
+.countryRight {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.countryImg {
+  width: 350px;
+  height: 200px;
+}
