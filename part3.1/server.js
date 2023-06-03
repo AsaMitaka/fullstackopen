@@ -1,6 +1,9 @@
 const express = require('express');
 const morgan = require('morgan');
+const cors = require('cors');
 // const mongoose = require('mongoose');
+
+const PORT = process.env.PORT || 3001;
 
 const personRoute = require('./routes/personRoute');
 const mainRoute = require('./routes/mainRoute');
@@ -18,7 +21,7 @@ const mainRoute = require('./routes/mainRoute');
 const app = express();
 
 app.use(express.json());
-
+app.use(cors());
 app.use((req, res, next) => {
   req.lastRequestTime = new Date();
   next();
@@ -33,6 +36,6 @@ app.use(morgan(':method :url :status :res[content-length] - :response-time ms :r
 app.use('/', mainRoute);
 app.use('/api', personRoute);
 
-app.listen(3000, () => {
+app.listen(PORT, () => {
   console.log(`Server start at 3000 port`);
 });
