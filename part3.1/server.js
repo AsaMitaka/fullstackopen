@@ -1,22 +1,23 @@
 const express = require('express');
 const morgan = require('morgan');
 const cors = require('cors');
-// const mongoose = require('mongoose');
+const mongoose = require('mongoose');
+const dotenv = require('dotenv').config();
 
 const PORT = process.env.PORT || 3001;
 
 const personRoute = require('./routes/personRoute');
 const mainRoute = require('./routes/mainRoute');
+const url = process.env.MONGODB_URL;
 
-// mongoose.connect();
-// const db = mongoose.connection;
-// db.once('open', () => {
-//   console.log('MongoDB is connected');
-// });
-
-// db.on('error', (error) => {
-//   console.log('MongoDB connection error:', error);
-// });
+mongoose
+  .connect(url)
+  .then((result) => {
+    console.log('connected to MongoDB');
+  })
+  .catch((error) => {
+    console.log('error connecting to MongoDB:', error.message);
+  });
 
 const app = express();
 

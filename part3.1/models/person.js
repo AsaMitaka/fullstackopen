@@ -11,6 +11,11 @@ const PersonSchema = Schema({
     required: true,
     unique: true,
   },
+  id: {
+    type: Number,
+    required: true,
+    unique: true,
+  },
 });
 
 module.exports = model('Person', PersonSchema);
