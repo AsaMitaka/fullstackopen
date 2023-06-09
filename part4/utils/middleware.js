@@ -3,12 +3,17 @@ const jwt = require('jsonwebtoken');
 const config = require('../utils/config');
 const User = require('../model/user');
 
-const getTokenFrom = (req) => {
-  const authorization = req.get('authorization');
-  if (authorization && authorization.startsWith('Bearer ')) {
-    return authorization.replace('Bearer ', '');
+const ensureToken = (req, res, next) => {
+  const bearerHeader = req.headers['authorization'];
+
+  if (typeof bearerHeader !== 'undefined') {
+    const bearer = bearerHeader.split(' ');
+    const bearerToken = bearer[1];
+    req.token = bearerToken;
+    next();
+  } else {
+    res.status(401).json({ error: 'Token missing' });
   }
-  return null;
 };
 
 const errorHandler = (error, req, res, next) => {
@@ -30,7 +35,7 @@ const errorHandler = (error, req, res, next) => {
 };
 
 const userExtractor = async (req, res, next) => {
-  const token = getTokenFrom(req);
+  const token = req.token;
   if (!token) {
     return res.status(401).json({ error: 'token missing' });
   }
@@ -53,4 +58,4 @@ const userExtractor = async (req, res, next) => {
   }
 };
 
-module.exports = { errorHandler, userExtractor };
+module.exports = { errorHandler, userExtractor, ensureToken };

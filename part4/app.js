@@ -15,6 +15,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(errorHandler);
+app.use(ensureToken);
 app.use(userExtractor);
 
 app.use('/api/', routeNote);
