@@ -1,115 +1,102 @@
-import { useState } from 'react';
-
-interface PersonFormProps {
-  handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
-  inputName: string;
-  setInputName: (name: string) => void;
-  inputPhoneNumber: string;
-  setInputPhoneNumber: (phoneNumber: string) => void;
-}
-
-const PersonForm: React.FC<PersonFormProps> = ({
-  handleSubmit,
-  inputName,
-  setInputName,
-  inputPhoneNumber,
-  setInputPhoneNumber,
-}) => {
-  return (
-    <form onSubmit={handleSubmit}>
-      <div>
-        Name: <input type="text" value={inputName} onChange={(e) => setInputName(e.target.value)} />
-      </div>
-      <div>
-        Phone number:
-        <input
-          type="text"
-          value={inputPhoneNumber}
-          onChange={(e) => setInputPhoneNumber(e.target.value)}
-        />
-      </div>
-      <button type="submit">Add</button>
-    </form>
-  );
-};
-
-type Person = {
-  id: number;
-  name: string;
-  number: string;
-};
-
-const PersonList: React.FC<{ persons: Person[] }> = ({ persons }) => {
-  return (
-    <ul>
-      {persons.map((person) => (
-        <li key={person.id}>
-          {person.name} {person.number}
-        </li>
-      ))}
-    </ul>
-  );
-};
-
-const ErrorMessage: React.FC<{ message: string }> = ({ message }) => {
-  return message && <p style={{ color: 'red' }}>{message}</p>;
-};
+import { useEffect, useState } from 'react';
+import services from './services';
+import Person, { PersonProps } from './components/person';
 
 const App = () => {
-  const [persons, setPersons] = useState([
-    {
-      name: 'Arto Hellas',
-      number: '830-322-42-12',
-      id: 1,
-    },
-  ]);
+  const [persons, setPersons] = useState<PersonProps[]>([]);
+  const [newName, setNewName] = useState('');
+  const [newPhoneNumber, setNewPhoneNumber] = useState('');
+  const [filtered, setFiltered] = useState('');
+  const [notification, setNotification] = useState('');
+  const [isError, setIsError] = useState(false);
 
-  const [inputName, setInputName] = useState('');
-  const [inputPhoneNumber, setInputPhoneNumber] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
-
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
-    const isNameExists = persons.some((person) => person.name === inputName);
-    const isNumberExists = persons.some((person) => person.number === inputPhoneNumber);
-
-    if (isNameExists) {
-      setErrorMessage('Name is already registered');
-      return;
-    }
-
-    if (isNumberExists) {
-      setErrorMessage('Phone number is already registered');
-      return;
-    }
-
-    const newId = persons[persons.length - 1].id + 1;
-    const newPerson = {
-      name: inputName,
-      number: inputPhoneNumber,
-      id: newId + 1,
+  useEffect(() => {
+    const getData = async () => {
+      const fetchedPersons = await services.getAll();
+      setPersons(fetchedPersons);
     };
 
-    setPersons((prevPersons) => [...prevPersons, newPerson]);
-    setInputName('');
-    setInputPhoneNumber('');
-    setErrorMessage('');
+    getData();
+  }, []);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setNotification('');
+    }, 3000);
+
+    return () => clearTimeout(timeoutId);
+  }, [notification]);
+
+  const handleDelete = async (id: number) => {
+    setPersons((prevPersons) => prevPersons.filter((person) => person.id !== id));
+    await services.delete(id);
+    setNotification('deleted successfull');
+    setIsError(true);
   };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    const isName = persons.some((person) => person.name === newName);
+    const isNumber = persons.some((person) => person.number === newPhoneNumber);
+
+    if (isName || isNumber) return;
+
+    const newId = persons.length > 0 ? persons[persons.length - 1].id + 1 : 1;
+    const newUser: PersonProps = {
+      name: newName,
+      number: newPhoneNumber,
+      id: newId,
+    };
+
+    await services.create(newUser);
+    setPersons((prevPersons) => [...prevPersons, newUser]);
+    setNewName('');
+    setNewPhoneNumber('');
+    setNotification('add successfull');
+    setIsError(false);
+  };
+
+  const filteredPerson = filtered ? persons.filter((person) => person.name === filtered) : persons;
 
   return (
     <div>
-      <h2>Phonebook</h2>
-      <PersonForm
-        handleSubmit={handleSubmit}
-        inputName={inputName}
-        setInputName={setInputName}
-        inputPhoneNumber={inputPhoneNumber}
-        setInputPhoneNumber={setInputPhoneNumber}
-      />
-      <ErrorMessage message={errorMessage} />
-      <h2>Numbers:</h2>
-      <PersonList persons={persons} />
+      <div>
+        filter shown with
+        <input type="text" value={filtered} onChange={(e) => setFiltered(e.target.value)} />
+      </div>
+      <form onSubmit={handleSubmit}>
+        <label htmlFor="name">Name:</label>
+        <input
+          type="text"
+          name="name"
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+        />
+        <label htmlFor="phonenumber">Phone:</label>
+        <input
+          type="text"
+          name="phonenumber"
+          value={newPhoneNumber}
+          onChange={(e) => setNewPhoneNumber(e.target.value)}
+        />
+        <button type="submit">Add</button>
+      </form>
+      {notification.length > 0 && (
+        <div
+          style={
+            isError
+              ? { color: 'red', border: '1px solid red' }
+              : { color: 'green', border: '1px solid green' }
+          }>
+          {notification}
+        </div>
+      )}
+      <ul>
+        {filteredPerson.map((person) => (
+          <Person key={person.id} {...person} handleDelete={handleDelete} />
+        ))}
+      </ul>
     </div>
   );
 };
