@@ -3,9 +3,9 @@ const Blog = require('../models/blog');
 const User = require('../models/user');
 
 blogRouter.get('/', async (req, res) => {
-  await Blog.find({}).then((blogs) => {
-    res.json(blogs);
-  });
+  const blogs = await Blog.find({});
+
+  return res.status(200).json(blogs);
 });
 
 blogRouter.post('/', async (req, res) => {

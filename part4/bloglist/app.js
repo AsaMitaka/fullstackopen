@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const cors = require('cors');
 const mongoose = require('mongoose');
+const { getToken } = require('./utils/middleware');
 
 const blogRouter = require('./controllers/blogs');
 const userRouter = require('./controllers/user');
@@ -15,6 +16,9 @@ app.use(express.json());
 
 app.use('/api/login', loginRouter);
 app.use('/api/user', userRouter);
+
+app.use(getToken);
+
 app.use('/api/blogs', blogRouter);
 
 module.exports = app;

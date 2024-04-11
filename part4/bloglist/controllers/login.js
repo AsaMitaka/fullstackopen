@@ -6,10 +6,12 @@ const User = require('../models/user');
 
 loginRouter.post('/', async (req, res) => {
   const { username, password } = req.body;
+  console.log(username, password);
 
   const isUserExist = await User.findOne({ username });
   if (!isUserExist) return res.status(404).json({ message: 'User not found' });
 
+  console.log(isUserExist);
   const isPasswordCorrect = await bcrypt.compare(password, isUserExist.passwordHash);
 
   if (!isPasswordCorrect)
@@ -22,9 +24,7 @@ loginRouter.post('/', async (req, res) => {
 
   const token = jwt.sign(userToken, process.env.JWT_SECRET_KEY, { expiresIn: 60 * 60 });
 
-  return res
-    .status(200)
-    .json({ token, username: isUserExist.username, password: isUserExist.password });
+  return res.status(200).json({ token, username: isUserExist.username, name: isUserExist.name });
 });
 
 module.exports = loginRouter;
